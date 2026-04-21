@@ -38,6 +38,12 @@ func TestAccCustomProviderCostsUploadResource_basic(t *testing.T) {
 					resource.TestCheckResourceAttrPair(resourceName, "id", resourceName, "token"),
 				),
 			},
+			// Confirm no drift on a subsequent plan.
+			{
+				Config:             testAccCostsUploadConfig(testAccCostsCSV),
+				PlanOnly:           true,
+				ExpectNonEmptyPlan: false,
+			},
 		},
 	})
 }
@@ -57,17 +63,23 @@ func TestAccCustomProviderCostsUploadResource_badHeaders(t *testing.T) {
 	})
 }
 
-// TestAccCustomProviderCostsUploadResource_autoTransform verifies that setting
-// auto_transform = true is accepted and does not cause perpetual drift.
+// TestAccCustomProviderCostsUploadResource_autoTransform verifies that a
+// non-FOCUS CSV is accepted when auto_transform = true and does not cause drift.
 func TestAccCustomProviderCostsUploadResource_autoTransform(t *testing.T) {
 	resourceName := "vantage_custom_provider_costs_upload.test"
+
+	// Non-FOCUS CSV that requires auto_transform to be processed by Vantage.
+	const csv = `date,service,category,cost,description
+2024-08-01,vm_server,compute,150.00,onprem_cluster1
+2024-08-01,storage_array,storage,50.00,onprem_nas
+`
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { acctest.PreCheck(t) },
 		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccCostsUploadAutoTransformConfig(testAccCostsCSV),
+				Config: testAccCostsUploadAutoTransformConfig(csv),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttrSet(resourceName, "token"),
 					resource.TestCheckResourceAttr(resourceName, "auto_transform", "true"),
@@ -75,7 +87,7 @@ func TestAccCustomProviderCostsUploadResource_autoTransform(t *testing.T) {
 			},
 			// Confirm no drift on a subsequent plan.
 			{
-				Config:             testAccCostsUploadAutoTransformConfig(testAccCostsCSV),
+				Config:             testAccCostsUploadAutoTransformConfig(csv),
 				PlanOnly:           true,
 				ExpectNonEmptyPlan: false,
 			},
