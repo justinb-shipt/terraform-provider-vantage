@@ -1,6 +1,7 @@
 package vantage
 
 import (
+	"regexp"
 	"testing"
 
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
@@ -11,6 +12,11 @@ import (
 const testAccCostsCSV = `BilledCost,BillingCurrency,ChargePeriodStart,ChargePeriodEnd,ChargeCategory,ResourceId,ServiceName
 10.00,USD,2024-01-01T00:00:00Z,2024-01-31T23:59:59Z,Usage,my-resource,MyService
 20.00,USD,2024-01-01T00:00:00Z,2024-01-31T23:59:59Z,Usage,other-resource,MyService
+`
+
+// testAccCostsCSVBadHeaders is a CSV missing the required ChargePeriodStart column.
+const testAccCostsCSVBadHeaders = `BilledCost,BillingCurrency,ChargeCategory,ResourceId,ServiceName
+10.00,USD,Usage,my-resource,MyService
 `
 
 func TestAccCustomProviderCostsUploadResource_basic(t *testing.T) {
@@ -31,6 +37,21 @@ func TestAccCustomProviderCostsUploadResource_basic(t *testing.T) {
 					// id and token must be identical
 					resource.TestCheckResourceAttrPair(resourceName, "id", resourceName, "token"),
 				),
+			},
+		},
+	})
+}
+
+// TestAccCustomProviderCostsUploadResource_badHeaders verifies that a CSV
+// missing required FOCUS columns is rejected by the API with a clear error.
+func TestAccCustomProviderCostsUploadResource_badHeaders(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck:                 func() { acctest.PreCheck(t) },
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+		Steps: []resource.TestStep{
+			{
+				Config:      testAccCostsUploadConfig(testAccCostsCSVBadHeaders),
+				ExpectError: regexp.MustCompile(`(?i)required column`),
 			},
 		},
 	})
