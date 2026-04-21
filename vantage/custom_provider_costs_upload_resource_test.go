@@ -7,10 +7,10 @@ import (
 	"github.com/vantage-sh/terraform-provider-vantage/vantage/acctest"
 )
 
-// testAccCostsCSV is a minimal FOCUS-compatible CSV for testing.
-const testAccCostsCSV = `BilledCost,BillingCurrency,BillingPeriodStart,BillingPeriodEnd,ChargeCategory,ResourceId,ServiceName
-10.00,USD,2024-01-01,2024-01-31,Usage,my-resource,MyService
-20.00,USD,2024-01-01,2024-01-31,Usage,other-resource,MyService
+// testAccCostsCSV is a minimal FOCUS 1.1-compatible CSV for testing.
+const testAccCostsCSV = `BilledCost,BillingCurrency,ChargePeriodStart,ChargePeriodEnd,ChargeCategory,ResourceId,ServiceName
+10.00,USD,2024-01-01T00:00:00Z,2024-01-31T23:59:59Z,Usage,my-resource,MyService
+20.00,USD,2024-01-01T00:00:00Z,2024-01-31T23:59:59Z,Usage,other-resource,MyService
 `
 
 func TestAccCustomProviderCostsUploadResource_basic(t *testing.T) {
