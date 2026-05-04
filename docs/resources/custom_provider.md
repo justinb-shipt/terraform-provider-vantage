@@ -35,3 +35,13 @@ resource "vantage_custom_provider" "example" {
 - `id` (String) Same as `token`.
 - `token` (String) Unique token of the Custom Provider integration.
 - `status` (String) The status of the integration.
+
+## Import
+
+Custom Provider integrations can be imported using their token:
+
+```shell
+terraform import vantage_custom_provider.example intgr_custom_provider_abc123
+```
+
+Note: `description` is not returned by the API and will not be restored after import.

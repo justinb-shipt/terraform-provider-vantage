@@ -35,7 +35,15 @@ func TestAccCustomProviderResource_basic(t *testing.T) {
 				PlanOnly:           true,
 				ExpectNonEmptyPlan: false,
 			},
-			// Step 3: Attempt to rename — the ImmutableAfterCreate plan modifier
+				// Step 3: Import by token and verify all importable fields match.
+			// description is write-only (not returned by the API) so it is excluded.
+			{
+				ResourceName:            resourceName,
+				ImportState:             true,
+				ImportStateVerify:       true,
+				ImportStateVerifyIgnore: []string{"description"},
+			},
+			// Step 4: Attempt to rename — the ImmutableAfterCreate plan modifier
 			// reverts the value to its state value, so Terraform sees no effective
 			// change and the user-defined name field remains stable.
 			{
