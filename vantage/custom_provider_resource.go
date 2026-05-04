@@ -68,7 +68,8 @@ func (r *CustomProviderResource) Schema(_ context.Context, _ resource.SchemaRequ
 				Optional:            true,
 				Computed:            true,
 				ElementType:         types.StringType,
-				MarkdownDescription: "Workspace tokens to associate with the integration. Can be updated in-place without recreating the resource.",
+				PlanModifiers:       []planmodifier.Set{planmodifiers.UseStateWhenEmpty()},
+				MarkdownDescription: "Workspace tokens to associate with the integration. Can be updated in-place. Note: the Vantage API requires at least one token — workspace associations cannot be fully removed once set.",
 			},
 			"token": schema.StringAttribute{
 				Computed:            true,
@@ -121,12 +122,15 @@ func (r *CustomProviderResource) Create(ctx context.Context, req resource.Create
 	data.Id = types.StringValue(out.Payload.Token)
 	data.Status = types.StringValue(out.Payload.Status)
 
-	// Associate workspaces immediately after creation if specified.
+	// Associate workspaces immediately after creation if specified;
+	// otherwise resolve to an empty set so the value is always known after apply.
 	if !data.Workspaces.IsNull() && !data.Workspaces.IsUnknown() {
 		data.Workspaces = r.applyWorkspaces(ctx, out.Payload.Token, data.Workspaces, &resp.Diagnostics)
 		if resp.Diagnostics.HasError() {
 			return
 		}
+	} else {
+		data.Workspaces, _ = types.SetValueFrom(ctx, types.StringType, []string{})
 	}
 
 	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
@@ -232,10 +236,19 @@ func (r *CustomProviderResource) Delete(ctx context.Context, req resource.Delete
 // applyWorkspaces calls the UpdateIntegration endpoint with the given workspace
 // tokens and returns the set value to store in state. It is used by both Create
 // (post-creation association) and Update (in-place workspace change).
+//
+// Note: the Vantage API requires workspace_tokens to be non-empty. Passing an
+// empty set is a no-op — the existing associations are preserved and the empty
+// set is returned as-is.
 func (r *CustomProviderResource) applyWorkspaces(ctx context.Context, integrationToken string, workspaces types.Set, diags *diag.Diagnostics) types.Set {
 	var tokens []string
 	diags.Append(workspaces.ElementsAs(ctx, &tokens, false)...)
 	if diags.HasError() {
+		return workspaces
+	}
+
+	// The API rejects an empty workspace_tokens array. Nothing to do.
+	if len(tokens) == 0 {
 		return workspaces
 	}
 

@@ -1,8 +1,10 @@
 package vantage
 
 import (
+	"fmt"
 	"testing"
 
+	sdkacctest "github.com/hashicorp/terraform-plugin-sdk/v2/helper/acctest"
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
 	"github.com/vantage-sh/terraform-provider-vantage/vantage/acctest"
 )
@@ -84,6 +86,7 @@ func TestAccCustomProviderResource_withDescription(t *testing.T) {
 
 func TestAccCustomProviderResource_withWorkspaces(t *testing.T) {
 	resourceName := "vantage_custom_provider.test"
+	workspaceName := "tf-acc-" + sdkacctest.RandStringFromCharSet(8, sdkacctest.CharSetAlphaNum)
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { acctest.PreCheck(t) },
@@ -97,47 +100,42 @@ func TestAccCustomProviderResource_withWorkspaces(t *testing.T) {
 					resource.TestCheckResourceAttr(resourceName, "workspaces.#", "0"),
 				),
 			},
-			// Step 2: Add a workspace token; confirm it appears in state without
-			// replacing the resource.
+			// Step 2: Add the test workspace; confirm it appears in state without
+			// replacing the custom provider resource.
 			{
-				Config: testAccCustomProviderWorkspacesConfig("Provider With Workspaces", "wrkspc_test123"),
+				Config: testAccCustomProviderWorkspacesConfig("Provider With Workspaces", workspaceName),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr(resourceName, "workspaces.#", "1"),
-					resource.TestCheckTypeSetElemAttr(resourceName, "workspaces.*", "wrkspc_test123"),
+					resource.TestCheckTypeSetElemAttrPair(
+						resourceName, "workspaces.*",
+						"vantage_workspace.test", "token",
+					),
 				),
 			},
 			// Step 3: Confirm no drift after workspace update.
 			{
-				Config:             testAccCustomProviderWorkspacesConfig("Provider With Workspaces", "wrkspc_test123"),
+				Config:             testAccCustomProviderWorkspacesConfig("Provider With Workspaces", workspaceName),
 				PlanOnly:           true,
 				ExpectNonEmptyPlan: false,
 			},
-			// Step 4: Remove the workspace by setting an empty set; confirm the
-			// resource is not replaced and workspaces returns to zero.
-			{
-				Config: testAccCustomProviderConfig("Provider With Workspaces", ""),
-				Check: resource.ComposeTestCheckFunc(
-					resource.TestCheckResourceAttrSet(resourceName, "token"),
-					resource.TestCheckResourceAttr(resourceName, "workspaces.#", "0"),
-				),
-			},
-			// Step 5: Confirm no drift after workspace removal.
-			{
-				Config:             testAccCustomProviderConfig("Provider With Workspaces", ""),
-				PlanOnly:           true,
-				ExpectNonEmptyPlan: false,
-			},
+			// Note: removing workspaces is not tested here. The Vantage API
+			// requires workspace_tokens to be non-empty, so associations cannot
+			// be fully cleared once set via this endpoint.
 		},
 	})
 }
 
-func testAccCustomProviderWorkspacesConfig(name, workspaceToken string) string {
-	return `
-resource "vantage_custom_provider" "test" {
-  name       = "` + name + `"
-  workspaces = ["` + workspaceToken + `"]
+func testAccCustomProviderWorkspacesConfig(providerName, workspaceName string) string {
+	return fmt.Sprintf(`
+resource "vantage_workspace" "test" {
+  name = %q
 }
-`
+
+resource "vantage_custom_provider" "test" {
+  name       = %q
+  workspaces = [vantage_workspace.test.token]
+}
+`, workspaceName, providerName)
 }
 
 func testAccCustomProviderConfig(name, description string) string {

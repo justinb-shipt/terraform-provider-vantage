@@ -28,7 +28,7 @@ resource "vantage_custom_provider" "example" {
 ### Optional
 
 - `description` (String) A description for the custom provider. Cannot be changed after creation — a warning will be shown and the existing value preserved if a change is attempted.
-- `workspaces` (Set of String) Workspace tokens to associate with the integration. Can be updated in-place without recreating the resource.
+- `workspaces` (Set of String) Workspace tokens to associate with the integration. Can be updated in-place without recreating the resource. **Note:** the Vantage API requires at least one token when updating workspace associations — workspace associations cannot be fully removed once set via Terraform. To disassociate all workspaces, use the Vantage UI or API directly.
 
 ### Read-Only
 
