@@ -82,6 +82,64 @@ func TestAccCustomProviderResource_withDescription(t *testing.T) {
 	})
 }
 
+func TestAccCustomProviderResource_withWorkspaces(t *testing.T) {
+	resourceName := "vantage_custom_provider.test"
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:                 func() { acctest.PreCheck(t) },
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+		Steps: []resource.TestStep{
+			// Step 1: Create without workspaces; confirm workspaces is empty set.
+			{
+				Config: testAccCustomProviderConfig("Provider With Workspaces", ""),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttrSet(resourceName, "token"),
+					resource.TestCheckResourceAttr(resourceName, "workspaces.#", "0"),
+				),
+			},
+			// Step 2: Add a workspace token; confirm it appears in state without
+			// replacing the resource.
+			{
+				Config: testAccCustomProviderWorkspacesConfig("Provider With Workspaces", "wrkspc_test123"),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr(resourceName, "workspaces.#", "1"),
+					resource.TestCheckTypeSetElemAttr(resourceName, "workspaces.*", "wrkspc_test123"),
+				),
+			},
+			// Step 3: Confirm no drift after workspace update.
+			{
+				Config:             testAccCustomProviderWorkspacesConfig("Provider With Workspaces", "wrkspc_test123"),
+				PlanOnly:           true,
+				ExpectNonEmptyPlan: false,
+			},
+			// Step 4: Remove the workspace by setting an empty set; confirm the
+			// resource is not replaced and workspaces returns to zero.
+			{
+				Config: testAccCustomProviderConfig("Provider With Workspaces", ""),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttrSet(resourceName, "token"),
+					resource.TestCheckResourceAttr(resourceName, "workspaces.#", "0"),
+				),
+			},
+			// Step 5: Confirm no drift after workspace removal.
+			{
+				Config:             testAccCustomProviderConfig("Provider With Workspaces", ""),
+				PlanOnly:           true,
+				ExpectNonEmptyPlan: false,
+			},
+		},
+	})
+}
+
+func testAccCustomProviderWorkspacesConfig(name, workspaceToken string) string {
+	return `
+resource "vantage_custom_provider" "test" {
+  name       = "` + name + `"
+  workspaces = ["` + workspaceToken + `"]
+}
+`
+}
+
 func testAccCustomProviderConfig(name, description string) string {
 	if description == "" {
 		return `

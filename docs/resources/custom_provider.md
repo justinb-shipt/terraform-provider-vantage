@@ -15,6 +15,7 @@ Manages a Custom Provider integration in Vantage. Custom Providers allow you to 
 resource "vantage_custom_provider" "example" {
   name        = "My Custom Provider"
   description = "An optional description for this provider"
+  workspaces  = ["wrkspc_abcd1234"]
 }
 ```
 
@@ -27,6 +28,7 @@ resource "vantage_custom_provider" "example" {
 ### Optional
 
 - `description` (String) A description for the custom provider. Cannot be changed after creation — a warning will be shown and the existing value preserved if a change is attempted.
+- `workspaces` (Set of String) Workspace tokens to associate with the integration. Can be updated in-place without recreating the resource.
 
 ### Read-Only
 
