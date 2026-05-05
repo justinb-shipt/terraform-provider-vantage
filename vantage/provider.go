@@ -211,6 +211,7 @@ func (p *vantageProvider) DataSources(_ context.Context) []func() datasource.Dat
 		NewBillingProfilesDataSource,
 		NewRecommendationViewsDataSource,
 		NewCustomProviderDataSource,
+		NewCustomProviderByNameDataSource,
 	}
 }
 
