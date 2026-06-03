@@ -9,6 +9,9 @@ import (
 	"github.com/vantage-sh/terraform-provider-vantage/vantage/acctest"
 )
 
+// TestAccVantageFolderByName_basic verifies that the vantage_folder_by_name data
+// source can look up a folder by its title without any additional filters, and that
+// the returned token and workspace_token match the created resource.
 func TestAccVantageFolderByName_basic(t *testing.T) {
 	rName := sdkacctest.RandStringFromCharSet(10, sdkacctest.CharSetAlphaNum)
 	folderTitle := fmt.Sprintf("tf-test-folder-%s", rName)
@@ -31,6 +34,10 @@ func TestAccVantageFolderByName_basic(t *testing.T) {
 	})
 }
 
+// TestAccVantageFolderByName_withWorkspaceFilter verifies that the
+// vantage_folder_by_name data source correctly narrows the search when
+// workspace_token is provided as a filter, returning only the folder within that
+// workspace.
 func TestAccVantageFolderByName_withWorkspaceFilter(t *testing.T) {
 	rName := sdkacctest.RandStringFromCharSet(10, sdkacctest.CharSetAlphaNum)
 	folderTitle := fmt.Sprintf("tf-test-folder-ws-%s", rName)
@@ -55,8 +62,11 @@ func TestAccVantageFolderByName_withWorkspaceFilter(t *testing.T) {
 
 func testAccFolderByNameDataSourceConfig(title string) string {
 	return fmt.Sprintf(`
+data "vantage_workspaces" "test" {}
+
 resource "vantage_folder" "test" {
-  title = %[1]q
+  title           = %[1]q
+  workspace_token = element(data.vantage_workspaces.test.workspaces, 0).token
 }
 
 data "vantage_folder_by_name" "test" {
@@ -68,8 +78,11 @@ data "vantage_folder_by_name" "test" {
 
 func testAccFolderByNameWithWorkspaceFilterConfig(title string) string {
 	return fmt.Sprintf(`
+data "vantage_workspaces" "test" {}
+
 resource "vantage_folder" "test" {
-  title = %[1]q
+  title           = %[1]q
+  workspace_token = element(data.vantage_workspaces.test.workspaces, 0).token
 }
 
 data "vantage_folder_by_name" "test" {

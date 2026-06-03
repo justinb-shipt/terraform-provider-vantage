@@ -9,6 +9,9 @@ import (
 	"github.com/vantage-sh/terraform-provider-vantage/vantage/acctest"
 )
 
+// TestAccVantageWorkspaceByName_basic verifies that the vantage_workspace_by_name
+// data source can look up a workspace by its display name and returns the correct
+// token matching the created resource.
 func TestAccVantageWorkspaceByName_basic(t *testing.T) {
 	rName := sdkacctest.RandStringFromCharSet(10, sdkacctest.CharSetAlphaNum)
 	workspaceName := fmt.Sprintf("tf-test-ws-%s", rName)
